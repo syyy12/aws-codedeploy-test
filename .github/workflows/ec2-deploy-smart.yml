@@ -38,7 +38,7 @@ jobs:
         run: |
           aws deploy create-deployment \
             --application-name simple-web-content \
-            --deployment-group-name simple-web-content-group \
+            --deployment-group-name simple-web-deploy-group \
             --s3-location bucket=${{ secrets.S3_BUCKET_NAME }},bundleType=zip,key=deploy.zip \
             --file-exists-behavior OVERWRITE
 
