@@ -2,14 +2,7 @@ name: AWS EC2-Deploy with Smart
 
 on:
   push:
-    branches:
-      - main
-
-env:
-  AWS_REGION: ap-northeast-2
-  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-  CODE_DEPLOY_APPLICATION: simple-web
-  CODE_DEPLOY_GROUP: simple-web-group
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -24,29 +17,32 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ap-northeast-2
 
       - name: 아티팩트 만들기 (deploy.zip)
-        run: zip -r deploy.zip .
+        run: |
+          zip -r deploy.zip .
 
       - name: S3 아티팩트 업로드
-        run: aws s3 cp deploy.zip s3://$S3_BUCKET_NAME/deploy.zip
+        run: |
+          aws s3 cp deploy.zip s3://${{ secrets.S3_BUCKET_NAME }}/deploy.zip
 
       - name: 진행중인 배포 중단
         run: |
-          aws deploy stop-deployment \
-            --deployment-id $(aws deploy list-deployments \
-            --application-name $CODE_DEPLOY_APPLICATION \
-            --deployment-group-name $CODE_DEPLOY_GROUP \
-            --query "deployments[0]" --output text) || echo "No active deployments"
+          deployments=$(aws deploy list-deployments --application-name simple-web-content --deployment-group-name simple-web-content-group --query "deployments" --output text)
+          for id in $deployments; do
+            aws deploy stop-deployment --deployment-id $id
+          done
 
       - name: 새로운 배포 시작
         run: |
           aws deploy create-deployment \
-            --application-name $CODE_DEPLOY_APPLICATION \
-            --deployment-group-name $CODE_DEPLOY_GROUP \
-            --s3-location bucket=$S3_BUCKET_NAME,bundleType=zip,key=deploy.zip
+            --application-name simple-web-content \
+            --deployment-group-name simple-web-content-group \
+            --s3-location bucket=${{ secrets.S3_BUCKET_NAME }},bundleType=zip,key=deploy.zip \
+            --file-exists-behavior OVERWRITE
 
       - name: 배포 완료까지 대기
-        run: echo "⏳ CodeDeploy is processing..."
+        run: |
+          echo "Waiting for deployment to complete..."
 
