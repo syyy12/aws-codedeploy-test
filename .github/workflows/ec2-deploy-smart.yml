@@ -29,7 +29,7 @@ jobs:
 
       - name: 진행중인 배포 중단
         run: |
-          deployments=$(aws deploy list-deployments --application-name simple-web-content --deployment-group-name simple-web-content-group --query "deployments" --output text)
+          deployments=$(aws deploy list-deployments --application-name simple-web-content --deployment-group-name simple-web-deploy-group --query "deployments" --output text)
           for id in $deployments; do
             aws deploy stop-deployment --deployment-id $id
           done
